@@ -43,7 +43,6 @@ void pl1(Sprite *player, int size)
     }
 }
 
-//Player 2 Movement Function
 void pl2(Sprite &player, float size)
 {    
     if(Keyboard::isKeyPressed(Keyboard::Key::A))
