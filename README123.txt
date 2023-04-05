@@ -1,8 +1,9 @@
-------------------------------Coin Collector--------------------------
-* This game is a multiplayer game.
-* Maximum of 2 players can this game and the player who collects the most coins wins
-* Game Instructions:
-    --Press N to create another player
-    --Be Quick to get all the coins
+ Coin-Collector-Game
+This is a multiplayer coin collector game in c++. The graphics library used is sfml. The game is made by multi-threading.
+## Instructions
+* Press N to generate a new player to play multiplayer.
+* Player 1 movement is by the following keys: UP Arrow, DOWN Arrow, LEFT Arrow, and RIGHT Arrow
+* Player 2 movemebt is by the following keys: W (UP), S (DOWN), A (LEFT), D (RIGHT)
+* Player with highest score wins.
 
-----Best of Luck-----
+            -------------------------------------Best of Luck-----------------------------------------
