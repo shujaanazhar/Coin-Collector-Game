@@ -5,31 +5,17 @@
 #include<iostream>
 #include<stdlib.h>
 #include<unistd.h>
-#include<thread>
+// #include<thread>
 #include<wait.h>
 #include<SFML/Graphics.hpp>
 #include"SFML/Audio.hpp"
 #include <X11/Xlib.h>
+#include<pthread.h>
 
 using namespace std;
 using namespace sf;
 
-//Calculate board Size
-int boardSize()
-{
-    srand(time(0));
-    int num = (rand() % 89) + 10;
-    num *= 6;
-    num = 406 / num;
-    num %= 25;
-    if(num < 10)
-        num += 15;
-    
-    return num;
-}
-
-//Player 1 Movement Function
-void p1Movement(Sprite *player, int size)
+void pl1(Sprite *player, int size)
 {
     if(Keyboard::isKeyPressed(Keyboard::Key::Left))
     {
@@ -58,7 +44,7 @@ void p1Movement(Sprite *player, int size)
 }
 
 //Player 2 Movement Function
-void p2Movement(Sprite &player, float size)
+void pl2(Sprite &player, float size)
 {    
     if(Keyboard::isKeyPressed(Keyboard::Key::A))
     {
@@ -88,13 +74,99 @@ void p2Movement(Sprite &player, float size)
 
     }
 }
+//Calculate board Size
+int boardSize()
+{
+    srand(time(0));
+    int num = (rand() % 89) + 10;
+    num *= 6;
+    num = 406 / num;
+    num %= 25;
+    if(num < 10)
+        num += 15;
+    
+    return num;
+}
+
+struct Player
+{
+    Sprite* player;
+    int size;
+};
+
+//Player 1 Movement Function
+void* p1Movement(void* peep)
+{
+    Player* player = (Player* )peep;
+
+    if(Keyboard::isKeyPressed(Keyboard::Key::Left))
+    {
+        if(player->player->getPosition().x - 50 >= -10)
+            player->player->move(-50.0f, 0.0f);
+    
+    }
+    else if(Keyboard::isKeyPressed(Keyboard::Key::Right))
+    {
+        if(player->player->getPosition().x + 50 <= player->size - 55)
+            player->player->move(50.0f, 0.0f);
+    
+    }
+    else if(Keyboard::isKeyPressed(Keyboard::Key::Up))
+    {
+        if(player->player->getPosition().y - 50 >= 0)
+        player->player->move(0.0f, -50.0f);
+    
+    }
+    else if(Keyboard::isKeyPressed(Keyboard::Key::Down))
+    {
+        if(player->player->getPosition().y + 50 <= player->size - 80)
+            player->player->move(0.0f, 50.0f);
+    
+    }
+    pthread_exit(NULL);
+}
+
+//Player 2 Movement Function
+void p2Movement(void* peep)
+{    
+    Player* player = (Player* )peep;
+
+    if(Keyboard::isKeyPressed(Keyboard::Key::A))
+    {
+        if(player->player->getPosition().x - 25 >= -10)
+            player->player->move(-25.0f, 0.0f);
+
+    }
+    //Right
+    else if(Keyboard::isKeyPressed(Keyboard::Key::D))
+    {
+        if(player->player->getPosition().x + 25 <= player->size - 25)
+            player->player->move(25.0f, 0.0f);
+
+    }
+    //Up
+    else if(Keyboard::isKeyPressed(Keyboard::Key::W))
+    {
+        if(player->player->getPosition().y - 25 >= 0)
+            player->player->move(0.0f, -25.0f);
+
+    }
+    //Down
+    else if(Keyboard::isKeyPressed(Keyboard::Key::S))
+    {
+        if(player->player->getPosition().y + 25 <= player->size - 80)
+            player->player->move(0.0f, 50.0f);
+
+    }
+    pthread_exit(NULL);
+}
 
 //Main Thread
 int main()
 {    
     XInitThreads();
     int size = boardSize() * 50;
-    
+    pthread_t tid[2];
 
     float windowHeight = size, windowWidth = size;
     
@@ -131,9 +203,6 @@ int main()
 
     player[1].setTexture(p2);
     player[1].setPosition(0, 0);
-    
-    thread player1(p1Movement, &(player[0]), size);
-    thread player2(p2Movement, ref(player[1]), size);
 
     int tcoins = 11;
     Sprite coins[11];
@@ -182,6 +251,30 @@ int main()
     winnerText.setPosition((size / 2) - 150, size / 2);
     winnerText.setColor(Color::Red);
 
+    Player* peep1 = new Player();
+    Player* peep2 = new Player();
+
+    peep1->player = &player[0];
+    peep2->player = &player[1];
+
+    peep1->size = size;
+    peep2->size = size;
+
+    
+
+    // pthread_attr_t t1, t2;
+
+    // pthread_attr_init(&t1);
+    // pthread_attr_init(&t2);
+
+    // pthread_attr_setdetachstate(&t1, PTHREAD_CREATE_DETACHED);
+    // pthread_attr_setdetachstate(&t2, PTHREAD_CREATE_DETACHED);
+
+    pthread_create(&tid[0], NULL, p1Movement, (void *)peep1);
+    
+    pthread_create(&tid[1], NULL, p1Movement, (void *)peep2);
+
+    // pthread_create(&tid[0], NULL, )
     while (window.isOpen())
     {
         //Scoring
@@ -194,7 +287,7 @@ int main()
             //EXIT
             if (event.type == Event::Closed or Keyboard::isKeyPressed(Keyboard::Key::Escape))
                 window.close();
-            p1Movement(&player[0], size);
+            pl1(&player[0], size);
             //Creates Player 2 in the Game
             if(Keyboard::isKeyPressed(Keyboard::Key::N) and (current_player < max_player))
             {
@@ -233,7 +326,7 @@ int main()
             
                 // }
 
-                p2Movement(player[1], size);
+                pl2(player[1], size);
             }
         }
 
@@ -244,13 +337,13 @@ int main()
         
         if(current_player == 1)
         {    
-            window.draw(player[0]);
+            window.draw(*(peep1->player));
             window.draw(text[0]);
         }
         else if(current_player == 2)
         {
-            window.draw(player[0]);
-            window.draw(player[1]);
+            window.draw(*(peep1->player));
+            window.draw(*(peep2->player));
 
             window.draw(text[0]);
             window.draw(text[1]);
@@ -258,13 +351,13 @@ int main()
         for(int i = 0; i < 11; i++)
         {
             //If collided
-            if(((player[0].getPosition().x == coins[i].getPosition().x) and (player[0].getPosition().y == coins[i].getPosition().y)))
+            if(((peep1->player->getPosition().x == coins[i].getPosition().x) and (peep1->player->getPosition().y == coins[i].getPosition().y)))
             {
                 coins[i].setPosition(1000, 1000);
                 ++score1;
                 tcoins--;
             }
-            else if(((player[1].getPosition().x == coins[i].getPosition().x) and (player[1].getPosition().y == coins[i].getPosition().y)))
+            else if(((peep2->player->getPosition().x == coins[i].getPosition().x) and (peep2->player->getPosition().y == coins[i].getPosition().y)))
             {
                 coins[i].setPosition(1000, 1000);
                 ++score2;
@@ -295,6 +388,9 @@ int main()
         
         
     }
-    player1.join();
-    player2.join();
+
+    pthread_join(tid[0], NULL);
+    pthread_join(tid[1], NULL);
+
+    pthread_exit(NULL);
 }
